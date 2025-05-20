@@ -373,10 +373,12 @@
 
         // Function to convert degrees to logMAR
         function degreesToLogMAR(degrees) {
-            if (degrees <= 0) return NaN; // Logarithm of non-positive numbers is not defined
-            const minutesOfArc = degrees * 60;
-            return Math.log10(minutesOfArc);
-        }
+        if (degrees <= 0) return NaN;
+        const minutesOfArc = degrees * 60;
+        const MAR = minutesOfArc / 5;
+        return Math.log10(MAR);
+        }   
+
 
         // Update the displayed value of the viewing distance slider
         distanceSlider.addEventListener('input', () => {
