@@ -474,24 +474,29 @@
                 // Calculate the size of one grid unit in pixels based on the E size
                 const gridUnitSizePixels = eSizeInPixels / E_GRID_SIZE;
                  // Calculate the total grid size in pixels
-                const totalGridSizePixels = gridUnitSizePixels * currentGridSize;
+                let totalGridSizePixels = gridUnitSizePixels * currentGridSize;
 
                 // Get the maximum allowed pixel size based on the e-section width
                 const maxAllowedPixels = eSection.offsetWidth;
 
+                // Clamp the total grid size by the maximum allowed pixels first
+                totalGridSizePixels = Math.min(totalGridSizePixels, maxAllowedPixels);
+
                 // Ensure minimum pixel size for the entire grid (at least 1 pixel per grid cell)
                 const minGridPixels = currentGridSize;
-                const clampedTotalGridSizePixels = Math.max(minGridPixels, Math.min(totalGridSizePixels, maxAllowedPixels));
+                totalGridSizePixels = Math.max(minGridPixels, totalGridSizePixels);
 
 
                 // Set the size of the grid container and its parent container
-                eGridContainer.style.width = clampedTotalGridSizePixels + 'px';
-                eGridContainer.style.height = clampedTotalGridSizePixels + 'px';
-                eContainer.style.width = clampedTotalGridSizePixels + 'px';
-                eContainer.style.height = clampedTotalGridSizePixels + 'px';
+                eGridContainer.style.width = totalGridSizePixels + 'px';
+                eGridContainer.style.height = totalGridSizePixels + 'px';
+                eContainer.style.width = totalGridSizePixels + 'px';
+                eContainer.style.height = totalGridSizePixels + 'px';
 
 
                 currentESizeDegreesPara.textContent = `Current 'E' Size: ${currentESizeDegrees.toFixed(2)} degrees`;
+
+                console.log(`updateESize: currentESizeDegrees=${currentESizeDegrees.toFixed(2)}, calculatedPixelsPerDegree=${calculatedPixelsPerDegree.toFixed(2)}, eSizeInPixels=${eSizeInPixels.toFixed(2)}, gridUnitSizePixels=${gridUnitSizePixels.toFixed(2)}, totalGridSizePixels=${totalGridSizePixels.toFixed(2)}, maxAllowedPixels=${maxAllowedPixels}`);
 
 
              } else {
@@ -503,6 +508,7 @@
                  eContainer.style.width = defaultGridSize + 'px';
                  eContainer.style.height = defaultGridSize + 'px';
                  currentESizeDegreesPara.textContent = `Current 'E' Size: N/A`;
+                 console.warn("updateESize called with calculatedPixelsPerDegree = 0.");
              }
         }
 
@@ -558,10 +564,14 @@
                  // Set initial 'E' size in degrees (start at max size)
                  currentESizeDegrees = MAX_E_SIZE_DEGREES;
 
+                 // Hide setup section and show 'E' section *before* building/sizing the E
+                 setupSection.classList.add('hidden');
+                 eSection.classList.remove('hidden');
+
                  // Build the main 'E' grid based on crowding setting
                  buildGrid(eGridContainer, crowdingEnabled ? EXTENDED_E_GRID_15x15 : E_SHAPE_GRID_5x5, crowdingEnabled ? EXTENDED_GRID_SIZE : E_GRID_SIZE);
 
-                 // Update the 'E' size and display AFTER calibration
+                 // Update the 'E' size and display AFTER calibration and section is visible
                  updateESize();
 
 
@@ -571,9 +581,9 @@
                  currentESizeDegrees = MAX_E_SIZE_DEGREES; // Still set an initial degree size
                  // If calibration failed, maybe show an error or use a default display?
                  console.error("Calibration failed: Rectangle height is zero.");
-                 // Optionally, build a default grid size here if needed, but it's better to rely on calibration
-                 // buildGrid(eGridContainer, E_SHAPE_GRID_5x5, E_GRID_SIZE);
-                 // updateESize(); // This will use the default size in updateESize
+                 // Keep setup section visible if calibration fails
+                 // setupSection.classList.remove('hidden');
+                 // eSection.classList.add('hidden');
             }
 
 
@@ -591,11 +601,6 @@
             console.log("Initial E size (degrees):", currentESizeDegrees.toFixed(2));
             console.log("Crowding Enabled:", crowdingEnabled);
             console.log("Target Reversals:", targetReversals);
-
-
-            // Hide setup section and show 'E' section
-            setupSection.classList.add('hidden');
-            eSection.classList.remove('hidden');
 
 
             // Build and rotate the 'E' grids within the direction buttons
