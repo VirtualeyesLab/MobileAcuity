@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resize the Rectangle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the resizable rectangle */
+        #resizable-rectangle {
+            width: 100px; /* Initial width (portrait) */
+            height: 150px; /* Initial height (portrait) */
+            background-color: #3b82f6; /* Blue background */
+            position: relative; /* Needed for positioning resize handle */
+            cursor: move; /* Indicate it's draggable */
+            touch-action: none; /* Prevent default touch actions like scrolling */
+        }
+
+        /* Style for the resize handle */
+        #resize-handle {
+            width: 20px;
+            height: 20px;
+            background-color: #1d4ed8; /* Darker blue */
+            position: absolute;
+            bottom: -10px; /* Position handle outside bottom-right corner */
+            right: -10px;
+            cursor: se-resize; /* South-east resize cursor */
+            border-radius: 50%; /* Make handle round */
+        }
+
+        /* Container for the 'E' and crowding bars */
+        #e-container {
+            position: relative; /* Needed for absolute positioning of bars */
+            display: inline-block; /* Shrink to fit content */
+        }
+
+        /* Style for the 'E' display area */
+        #e-display {
+            /* Initial font size will be set by JS after calculation */
+            font-weight: bold;
+            /* Using a generic sans-serif font. A specific Sloan font would need to be sourced. */
+            font-family: 'Arial Black', sans-serif;
+            /* Removed transition: transform 0.2s ease-in-out; for instant rotation */
+            display: inline-block; /* Allows transform to work correctly */
+            line-height: 1; /* Ensure line height doesn't add extra space */
+            color: black; /* Default color for the 'E' */
+        }
+
+        /* Style for crowding bars */
+        .crowding-bar {
+            position: absolute;
+            background-color: black; /* Color of the bars */
+            /* Size and position will be set by JS */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm w-full">
+
+        <div id="setup-section">
+            <h1 class="text-2xl font-bold mb-4">Setup: Resize and Distance</h1>
+            <p class="text-gray-700 mb-6">Resize the blue rectangle below until it matches the size of a credit card in <b>portrait</b> orientation on your screen.</p> <div class="flex justify-center mb-6">
+                <div id="resizable-rectangle" class="rounded-md">
+                    <div id="resize-handle"></div>
+                </div>
+            </div>
+
+            <p class="text-sm text-gray-500 mb-6">Hint: Drag the small circle in the bottom-right corner to resize.</p>
+
+            <div class="mb-6">
+                <label for="viewing-distance" class="block text-gray-700 text-sm font-bold mb-2">
+                    Viewing Distance (<span id="distance-value">30</span> cm)
+                </label>
+                <input type="range" id="viewing-distance" name="viewing-distance" min="30" max="800" value="30" class="w-full">
+            </div>
+
+             <div class="mb-6">
+                <label for="num-reversals" class="block text-gray-700 text-sm font-bold mb-2">
+                    Number of Reversals for Threshold Estimation (<span id="reversals-value">5</span>):
+                </label>
+                <input type="range" id="num-reversals" name="num-reversals" min="2" max="20" value="5" class="w-full">
+            </div>
+
+             <div class="mb-6 flex items-center justify-center">
+                <input type="checkbox" id="enable-crowding" class="mr-2 leading-tight">
+                <label for="enable-crowding" class="text-gray-700 text-sm font-bold">
+                    Enable Crowding Bars
+                </label>
+            </div>
+
+
+            <button id="proceed-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+                Proceed
+            </button>
+
+            <div id="results" class="mt-6 text-left text-gray-800 hidden">
+                <h2 class="text-lg font-semibold mb-2">Calibration Results:</h2>
+                <p id="saved-size"></p>
+                <p id="saved-distance"></p>
+                <p id="pixels-per-cm"></p>
+                <p id="pixels-per-degree"></p>
+            </div>
+        </div>
+
+        <div id="e-section" class="hidden px-4 py-12"> <h2 class="text-xl font-bold mb-4">Indicate the direction of the 'E'</h2>
+             <p class="text-gray-700 mb-6">If you can't tell, just guess</p>
+
+            <div class="flex justify-center mb-4">
+                 <div id="e-container">
+                    <span id="e-display">E</span>
+                    <div id="crowding-left" class="crowding-bar vertical hidden"></div>
+                    <div id="crowding-right" class="crowding-bar vertical hidden"></div>
+                    <div id="crowding-top" class="crowding-bar horizontal hidden"></div>
+                    <div id="crowding-bottom" class="crowding-bar horizontal hidden"></div>
+                 </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                 <button data-direction="right" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Right
+                </button>
+                <button data-direction="down" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Down
+                </button>
+                <button data-direction="left" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Left
+                </button>
+                <button data-direction="up" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Up
+                </button>
+            </div>
+
+            <div class="mt-6 text-left text-gray-800">
+                <h2 class="text-lg font-semibold mb-2">Visual Acuity Estimate:</h2>
+                <p id="current-e-size-degrees"></p>
+                <p id="visual-threshold"></p>
+                <p id="visual-threshold-logmar"></p> </div>
+
+
+             <button id="reset-button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full mt-6">
+                Reset Setup
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const rectangle = document.getElementById('resizable-rectangle');
+        const handle = document.getElementById('resize-handle');
+        const distanceSlider = document.getElementById('viewing-distance');
+        const distanceValueSpan = document.getElementById('distance-value');
+        const proceedButton = document.getElementById('proceed-button');
+        const resultsDiv = document.getElementById('results');
+        const savedSizePara = document.getElementById('saved-size');
+        const savedDistancePara = document.getElementById('saved-distance');
+        const pixelsPerCmPara = document.getElementById('pixels-per-cm');
+        const pixelsPerDegreePara = document.getElementById('pixels-per-degree');
+        const eDisplay = document.getElementById('e-display');
+        const eContainer = document.getElementById('e-container'); // Get the E container
+        const rotateButtons = document.querySelectorAll('.rotate-button'); // Keep these for potential future use
+        const setupSection = document.getElementById('setup-section');
+        const eSection = document.getElementById('e-section');
+        const resetButton = document.getElementById('reset-button');
+        const directionButtons = document.querySelectorAll('.direction-button');
+        const currentESizeDegreesPara = document.getElementById('current-e-size-degrees');
+        const visualThresholdPara = document.getElementById('visual-threshold');
+        const visualThresholdLogmarPara = document.getElementById('visual-threshold-logmar'); // Get the new logMAR paragraph
+        const numReversalsInput = document.getElementById('num-reversals'); // Get the number of reversals input
+        const reversalsValueSpan = document.getElementById('reversals-value'); // Get the span for reversals value
+        const enableCrowdingCheckbox = document.getElementById('enable-crowding'); // Get the crowding checkbox
+        const crowdingBars = document.querySelectorAll('.crowding-bar'); // Get all crowding bars
+
+
+        let isResizing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Variables to store the saved data
+        let savedRectangleWidth = 0;
+        let savedRectangleHeight = 0;
+        let savedViewingDistance = 0;
+        let calculatedPixelsPerCm = 0;
+        let calculatedPixelsPerDegree = 0;
+
+        // Variables for the 'E' display and staircase
+        let currentESizeDegrees = 0;
+        let currentRotation = 0; // 0: right, 90: down, 180: left, 270: up
+        let crowdingEnabled = false; // State of the crowding checkbox
+        let targetReversals = 5; // User-specified number of reversals
+
+        // Staircase variables
+        const INITIAL_PROPORTIONAL_STEP_FACTOR = 0.2; // Initial size change as a proportion of current size
+        const PROPORTIONAL_STEP_DECREASE_FACTOR = 0.7; // Factor to decrease proportional step after reversal
+        const MIN_PROPORTIONAL_STEP_FACTOR = 0.05; // Minimum proportional step factor
+        const CORRECT_REVERSAL_STREAK = 3; // Number of correct answers for a reversal
+        const MIN_E_SIZE_DEGREES = 0.02; // Minimum 'E' size in degrees to prevent it from disappearing
+        let proportionalStepFactor = INITIAL_PROPORTIONAL_STEP_FACTOR;
+        let correctStreak = 0;
+        let incorrectStreak = 0;
+        let staircaseDirection = 'down'; // 'down' means decreasing size, 'up' means increasing size
+        let reversalSizes = []; // Store sizes at reversal points
+        let reversalsCount = 0;
+
+
+        // Standard credit card dimensions in cm (ISO 7810 ID-1)
+        const CREDIT_CARD_WIDTH_CM = 8.56;
+        const CREDIT_CARD_HEIGHT_CM = 5.398;
+
+        // Initial target visual angle for the 'E' in degrees
+        const INITIAL_VISUAL_ANGLE_DEG = 2;
+
+        // Crowding bar spacing and size relative to E size (adjust as needed)
+        const CROWDING_SPACING_FACTOR = 0.5; // Space between E and bar as a factor of E size
+        const CROWDING_BAR_LENGTH_FACTOR = 1.0; // Length of bars as a factor of E size
+        const CROWDING_BAR_THICKNESS_FACTOR = 0.15; // Thickness of bars as a factor of E size (approximating stroke width)
+
+
+        // Map rotation degrees to direction strings
+        const rotationToDirection = {
+            0: 'right',
+            90: 'down',
+            180: 'left',
+            270: 'up'
+        };
+
+        // Function to convert degrees to logMAR
+        function degreesToLogMAR(degrees) {
+            if (degrees <= 0) return NaN; // Logarithm of non-positive numbers is not defined
+            const minutesOfArc = degrees * 60;
+            return Math.log10(minutesOfArc);
+        }
+
+        // Update the displayed value of the viewing distance slider
+        distanceSlider.addEventListener('input', () => {
+            distanceValueSpan.textContent = distanceSlider.value;
+        });
+
+         // Update the displayed value of the number of reversals slider
+        numReversalsInput.addEventListener('input', () => {
+            reversalsValueSpan.textContent = numReversalsInput.value;
+        });
+
+
+        // Function to handle the start of resizing (mouse or touch)
+        function startResize(e) {
+            isResizing = true;
+            // Prevent default touch behavior (like scrolling)
+            e.preventDefault();
+
+            // Get the starting position based on event type
+            if (e.type === 'touchstart') {
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+            } else {
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
+
+            // Add event listeners for moving and ending the resize
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+            document.addEventListener('touchmove', resize);
+            document.addEventListener('touchend', stopResize);
+        }
+
+        // Function to handle the resizing (mouse or touch)
+        function resize(e) {
+            if (!isResizing) return;
+
+            // Get the current position based on event type
+            let clientX, clientY;
+            if (e.type === 'touchmove') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            // Calculate the change in position
+            const deltaX = clientX - lastX;
+            const deltaY = clientY - lastY;
+
+            // Update the rectangle's width and height
+            const newWidth = rectangle.offsetWidth + deltaX;
+            const newHeight = rectangle.offsetHeight + deltaY;
+
+            // Ensure dimensions don't go below a minimum size (optional)
+            rectangle.style.width = Math.max(50, newWidth) + 'px';
+            rectangle.style.height = Math.max(50, newHeight) + 'px';
+
+            // Update the last position
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        // Function to handle the end of resizing (mouse or touch)
+        function stopResize() {
+            isResizing = false;
+            // Remove the event listeners
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+            document.removeEventListener('touchmove', resize);
+            document.removeEventListener('touchend', stopResize);
+        }
+
+        // Function to set a random rotation for the 'E'
+        function setRandomERotation() {
+            const rotations = [0, 90, 180, 270];
+            const randomIndex = Math.floor(Math.random() * rotations.length);
+            currentRotation = rotations[randomIndex];
+            eDisplay.style.transform = `rotate(${currentRotation}deg)`;
+        }
+
+        // Function to update the 'E' size based on degrees and pixels per degree
+        function updateESize() {
+             if (calculatedPixelsPerDegree > 0) {
+                const eSizeInPixels = calculatedPixelsPerDegree * currentESizeDegrees;
+                const clampedESizeInPixels = Math.max(1, eSizeInPixels); // Ensure minimum size (1 pixel)
+                eDisplay.style.fontSize = clampedESizeInPixels + 'px';
+                currentESizeDegreesPara.textContent = `Current 'E' Size: ${currentESizeDegrees.toFixed(2)} degrees`;
+
+                // Update crowding bar size and position if enabled
+                if (crowdingEnabled) {
+                    const barLength = clampedESizeInPixels * CROWDING_BAR_LENGTH_FACTOR;
+                    const spacing = clampedESizeInPixels * CROWDING_SPACING_FACTOR;
+                    const barThickness = clampedESizeInPixels * CROWDING_BAR_THICKNESS_FACTOR; // Thickness scales with E size
+
+                    // Position and size the bars
+                    const leftBar = document.getElementById('crowding-left');
+                    const rightBar = document.getElementById('crowding-right');
+                    const topBar = document.getElementById('crowding-top');
+                    const bottomBar = document.getElementById('crowding-bottom');
+
+                    // Vertical bars
+                    leftBar.style.width = barThickness + 'px'; // Set width dynamically
+                    leftBar.style.height = barLength + 'px';
+                    leftBar.style.left = `calc(50% - ${clampedESizeInPixels / 2}px - ${spacing}px - ${barThickness}px)`;
+                    leftBar.style.top = `calc(50% - ${barLength / 2}px)`;
+
+                    rightBar.style.width = barThickness + 'px'; // Set width dynamically
+                    rightBar.style.height = barLength + 'px';
+                    rightBar.style.left = `calc(50% + ${clampedESizeInPixels / 2}px + ${spacing}px)`;
+                    rightBar.style.top = `calc(50% - ${barLength / 2}px)`;
+
+                    // Horizontal bars
+                    topBar.style.height = barThickness + 'px'; // Set height dynamically
+                    topBar.style.width = barLength + 'px';
+                    topBar.style.top = `calc(50% - ${clampedESizeInPixels / 2}px - ${spacing}px - ${barThickness}px)`;
+                    topBar.style.left = `calc(50% - ${barLength / 2}px)`;
+
+                    bottomBar.style.height = barThickness + 'px'; // Set height dynamically
+                    bottomBar.style.width = barLength + 'px';
+                    bottomBar.style.top = `calc(50% + ${clampedESizeInPixels / 2}px + ${spacing}px)`;
+                    bottomBar.style.left = `calc(50% - ${barLength / 2}px)`;
+
+                     // Ensure bars are visible
+                    crowdingBars.forEach(bar => bar.classList.remove('hidden'));
+
+                } else {
+                     // Hide bars if crowding is not enabled
+                     crowdingBars.forEach(bar => bar.classList.add('hidden'));
+                }
+
+
+             } else {
+                 eDisplay.style.fontSize = '50px'; // Default size if calculation is not possible
+                 currentESizeDegreesPara.textContent = `Current 'E' Size: N/A`;
+                  // Hide bars if calculation is not possible
+                 crowdingBars.forEach(bar => bar.classList.add('hidden'));
+             }
+        }
+
+        // Function to estimate visual threshold from reversal points
+        function estimateVisualThreshold() {
+            if (reversalsCount >= targetReversals) {
+                const sum = reversalSizes.reduce((a, b) => a + b, 0);
+                const averageReversalSizeDegrees = sum / reversalSizes.length;
+                visualThresholdPara.textContent = `Estimated Visual Threshold: ${averageReversalSizeDegrees.toFixed(2)} degrees`;
+
+                const averageReversalSizeLogmar = degreesToLogMAR(averageReversalSizeDegrees);
+                visualThresholdLogmarPara.textContent = `Estimated Visual Threshold: ${averageReversalSizeLogmar.toFixed(2)} logMAR`;
+
+                 // Optionally disable direction buttons or show a completion message
+                 directionButtons.forEach(button => button.disabled = true);
+                 console.log("Enough reversals reached. Threshold estimated.");
+
+            } else {
+                 visualThresholdPara.textContent = `Estimated Visual Threshold: Collecting data (${reversalsCount}/${targetReversals} reversals)`;
+                 visualThresholdLogmarPara.textContent = ''; // Clear logMAR display
+                 directionButtons.forEach(button => button.disabled = false); // Ensure buttons are enabled
+            }
+        }
+
+
+        // Event listener for the Proceed button
+        proceedButton.addEventListener('click', () => {
+            // Save the current size of the rectangle
+            savedRectangleWidth = rectangle.offsetWidth;
+            savedRectangleHeight = rectangle.offsetHeight;
+
+            // Save the selected viewing distance
+            savedViewingDistance = parseInt(distanceSlider.value, 10);
+
+            // Get the number of reversals and crowding setting
+            targetReversals = parseInt(numReversalsInput.value, 10);
+            crowdingEnabled = enableCrowdingCheckbox.checked;
+
+            // Ensure targetReversals is at least 2
+            if (targetReversals < 2) targetReversals = 2;
+
+
+            // Compute pixels per cm based on the saved HEIGHT (for portrait credit card)
+            // Assumes the user has resized the rectangle to credit card height
+            if (savedRectangleHeight > 0) { // Use height for calculation
+                 calculatedPixelsPerCm = savedRectangleHeight / CREDIT_CARD_HEIGHT_CM; // Use credit card height
+
+                 // Calculate pixels per degree
+                 // Formula: pixels per degree = pixels per cm * viewing distance (cm) * tan(1 degree in radians)
+                 const oneDegreeInRadians = 1 * (Math.PI / 180);
+                 calculatedPixelsPerDegree = calculatedPixelsPerCm * savedViewingDistance * Math.tan(oneDegreeInRadians);
+
+                 // Set initial 'E' size in degrees
+                 currentESizeDegrees = INITIAL_VISUAL_ANGLE_DEG;
+                 updateESize(); // Update the 'E' size and display
+
+            } else {
+                 calculatedPixelsPerCm = 0; // Avoid division by zero
+                 calculatedPixelsPerDegree = 0;
+                 currentESizeDegrees = INITIAL_VISUAL_ANGLE_DEG; // Still set an initial degree size
+                 updateESize(); // Update the 'E' size and display
+            }
+
+
+            // Display the saved/calculated values
+            savedSizePara.textContent = `Saved Rectangle Size: ${savedRectangleWidth}px x ${savedRectangleHeight}px`;
+            savedDistancePara.textContent = `Saved Viewing Distance: ${savedViewingDistance} cm`;
+            pixelsPerCmPara.textContent = `Calculated Pixels per cm: ${calculatedPixelsPerCm.toFixed(2)}`;
+            pixelsPerDegreePara.textContent = `Calculated Pixels per degree: ${calculatedPixelsPerDegree.toFixed(2)}`;
+            resultsDiv.classList.remove('hidden'); // Show the calibration results area
+
+            console.log("Saved Rectangle Size:", savedRectangleWidth, "px x", savedRectangleHeight, "px");
+            console.log("Saved Viewing Distance:", savedViewingDistance, "cm");
+            console.log("Calculated Pixels per cm:", calculatedPixelsPerCm.toFixed(2));
+            console.log("Calculated Pixels per degree:", calculatedPixelsPerDegree.toFixed(2));
+            console.log("Initial E size (degrees):", currentESizeDegrees.toFixed(2));
+            console.log("Crowding Enabled:", crowdingEnabled);
+            console.log("Target Reversals:", targetReversals);
+
+
+            // Hide setup section and show 'E' section
+            setupSection.classList.add('hidden');
+            eSection.classList.remove('hidden');
+
+            // Start the visual acuity test
+            setRandomERotation(); // Set the first random rotation
+            // Reset staircase variables for a new test
+            correctStreak = 0;
+            incorrectStreak = 0;
+            staircaseDirection = 'down';
+            reversalSizes = [];
+            reversalsCount = 0;
+            proportionalStepFactor = INITIAL_PROPORTIONAL_STEP_FACTOR; // Reset proportional step factor
+            estimateVisualThreshold(); // Display initial threshold status
+        });
+
+        // Add event listeners to the direction buttons
+        directionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // If enough reversals are reached, do nothing on button click
+                if (reversalsCount >= targetReversals) {
+                     return;
+                }
+
+                const selectedDirection = button.getAttribute('data-direction');
+                const correctDirection = rotationToDirection[currentRotation];
+
+                let reversalOccurred = false;
+                const currentStepSize = currentESizeDegrees * proportionalStepFactor;
+
+
+                if (selectedDirection === correctDirection) {
+                    console.log("Correct!");
+                    correctStreak++;
+                    incorrectStreak = 0;
+
+                    if (staircaseDirection === 'up' && correctStreak >= CORRECT_REVERSAL_STREAK) {
+                        // Reversal: was increasing size, got 3 correct
+                        reversalSizes.push(currentESizeDegrees);
+                        reversalsCount++;
+                        staircaseDirection = 'down';
+                        reversalOccurred = true;
+                        console.log("Reversal (up -> down) at size:", currentESizeDegrees.toFixed(2));
+                         // Decrease proportional step size after reversal
+                        proportionalStepFactor = Math.max(MIN_PROPORTIONAL_STEP_FACTOR, proportionalStepFactor * PROPORTIONAL_STEP_DECREASE_FACTOR);
+                        console.log("New proportional step factor:", proportionalStepFactor.toFixed(2));
+
+                    }
+
+                     // Decrease size
+                    currentESizeDegrees -= currentStepSize;
+                    if (currentESizeDegrees < MIN_E_SIZE_DEGREES) currentESizeDegrees = MIN_E_SIZE_DEGREES; // Enforce minimum E size
+
+
+                } else {
+                    console.log("Incorrect!");
+                    incorrectStreak++;
+                    correctStreak = 0;
+
+                    if (staircaseDirection === 'down' && incorrectStreak >= 1) {
+                        // Reversal: was decreasing size, got 1 incorrect
+                         reversalSizes.push(currentESizeDegrees);
+                         reversalsCount++;
+                         staircaseDirection = 'up';
+                         reversalOccurred = true;
+                         console.log("Reversal (down -> up) at size:", currentESizeDegrees.toFixed(2));
+                         // Decrease proportional step size after reversal
+                         proportionalStepFactor = Math.max(MIN_PROPORTIONAL_STEP_FACTOR, proportionalStepFactor * PROPORTIONAL_STEP_DECREASE_FACTOR);
+                         console.log("New proportional step factor:", proportionalStepFactor.toFixed(2));
+                    }
+
+                    // Increase size
+                    currentESizeDegrees += currentStepSize * 2; // Incorrect steps can be larger
+
+                }
+
+                updateESize(); // Update the 'E' size and display
+                estimateVisualThreshold(); // Update the threshold estimate display
+
+                // If enough reversals, the estimateVisualThreshold function will handle disabling buttons
+
+                setRandomERotation(); // Set the next random rotation
+            });
+        });
+
+
+        // Event listener for the Reset button
+        resetButton.addEventListener('click', () => {
+            // Hide 'E' section and show setup section
+            eSection.classList.add('hidden');
+            setupSection.classList.remove('hidden');
+
+             // Reset 'E' rotation and size
+            eDisplay.style.transform = 'rotate(0deg)';
+            eDisplay.style.fontSize = '10rem'; // Reset to a default large size
+
+             // Hide crowding bars
+             crowdingBars.forEach(bar => bar.classList.add('hidden'));
+             enableCrowdingCheckbox.checked = false; // Reset checkbox
+
+
+             // Clear the results display
+            resultsDiv.classList.add('hidden');
+            currentESizeDegreesPara.textContent = '';
+            visualThresholdPara.textContent = '';
+            visualThresholdLogmarPara.textContent = ''; // Clear logMAR display
+
+
+            // Reset staircase variables
+            correctStreak = 0;
+            incorrectStreak = 0;
+            staircaseDirection = 'down';
+            reversalSizes = [];
+            reversalsCount = 0;
+            currentESizeDegrees = 0; // Reset E size in degrees
+            targetReversals = 5; // Reset target reversals
+            numReversalsInput.value = 5; // Reset input value
+            reversalsValueSpan.textContent = 5; // Reset display span value
+            proportionalStepFactor = INITIAL_PROPORTIONAL_STEP_FACTOR; // Reset proportional step factor
+
+
+             // Ensure direction buttons are enabled
+             directionButtons.forEach(button => button.disabled = false);
+        });
+
+
+        // Add event listeners to the resize handle
+        handle.addEventListener('mousedown', startResize);
+        handle.addEventListener('touchstart', startResize); // Add touch support
+    </script>
+
+</body>
+</html>
