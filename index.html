@@ -495,7 +495,8 @@
 
 
              } else {
-                 // Default size if calculation is not possible
+                 // This block should ideally not be reached after calibration
+                 // Default size if calculation is not possible or before calibration
                  const defaultGridSize = 50; // Default size in pixels
                  eGridContainer.style.width = defaultGridSize + 'px';
                  eGridContainer.style.height = defaultGridSize + 'px';
@@ -556,13 +557,23 @@
 
                  // Set initial 'E' size in degrees (start at max size)
                  currentESizeDegrees = MAX_E_SIZE_DEGREES;
-                 updateESize(); // Update the 'E' size and display
+
+                 // Build the main 'E' grid based on crowding setting
+                 buildGrid(eGridContainer, crowdingEnabled ? EXTENDED_E_GRID_15x15 : E_SHAPE_GRID_5x5, crowdingEnabled ? EXTENDED_GRID_SIZE : E_GRID_SIZE);
+
+                 // Update the 'E' size and display AFTER calibration
+                 updateESize();
+
 
             } else {
                  calculatedPixelsPerCm = 0; // Avoid division by zero
                  calculatedPixelsPerDegree = 0;
                  currentESizeDegrees = MAX_E_SIZE_DEGREES; // Still set an initial degree size
-                 updateESize(); // Update the 'E' size and display
+                 // If calibration failed, maybe show an error or use a default display?
+                 console.error("Calibration failed: Rectangle height is zero.");
+                 // Optionally, build a default grid size here if needed, but it's better to rely on calibration
+                 // buildGrid(eGridContainer, E_SHAPE_GRID_5x5, E_GRID_SIZE);
+                 // updateESize(); // This will use the default size in updateESize
             }
 
 
@@ -586,12 +597,12 @@
             setupSection.classList.add('hidden');
             eSection.classList.remove('hidden');
 
-            // Build the main 'E' grid based on crowding setting
-            buildGrid(eGridContainer, crowdingEnabled ? EXTENDED_E_GRID_15x15 : E_SHAPE_GRID_5x5, crowdingEnabled ? EXTENDED_GRID_SIZE : E_GRID_SIZE);
 
             // Build and rotate the 'E' grids within the direction buttons
             directionButtons.forEach(button => {
                 const buttonEContainer = button.querySelector('.button-e-container');
+                // Clear existing content in case of reset
+                buttonEContainer.innerHTML = '';
                 const buttonEGrid = document.createElement('div');
                 buttonEGrid.classList.add('button-e-grid');
                 buttonEContainer.appendChild(buttonEGrid);
