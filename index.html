@@ -28,30 +28,91 @@
             border-radius: 50%; /* Make handle round */
         }
 
-        /* Container for the 'E' and crowding bars */
+        /* Container for the extended grid (E + bars) */
         #e-container {
-            position: relative; /* Needed for absolute positioning of bars */
+             /* The size of this container will be set by JS */
             display: inline-block; /* Shrink to fit content */
+            transform-origin: center; /* Rotate around the center */
         }
 
-        /* Style for the 'E' display area */
-        #e-display {
-            /* Initial font size will be set by JS after calculation */
+        /* Container for the 15x15 grid */
+        #e-grid-container {
+            display: grid;
+            /* grid-template-columns and rows set by JS */
+            gap: 0; /* No gap between grid cells */
+            /* Size will be set by JS */
+        }
+
+        /* Style for individual grid cells (pixels) */
+        .e-grid-cell {
+            background-color: white; /* Default background (transparent part of E/grid) */
+        }
+
+        /* Style for the black parts of the 'E' and bars */
+        .e-grid-cell.black {
+            background-color: black;
+        }
+
+        /* Style for the button E container */
+        .button-e-container {
+            width: 30px; /* Fixed size for button E */
+            height: 30px; /* Fixed size for button E */
+            margin: 0 auto; /* Center the E in the button */
+            display: flex; /* Use flex to center the grid */
+            align-items: center;
+            justify-content: center;
+        }
+
+         /* Style for the button E grid */
+        .button-e-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 columns */
+            grid-template-rows: repeat(5, 1fr);    /* 5 rows */
+            gap: 0; /* No gap */
+             width: 100%; /* Make grid fill container */
+             height: 100%; /* Make grid fill container */
+             transform-origin: center; /* Rotate around center */
+        }
+
+         /* Style for button grid cells */
+        .button-e-grid-cell {
+             background-color: white;
+        }
+
+         /* Style for black parts in button grid */
+        .button-e-grid-cell.black {
+            background-color: black;
+        }
+
+        /* Updated style for direction buttons */
+        .direction-button {
+            background-color: white; /* White background */
+            color: black; /* Black text/content */
+            border: 2px solid #d1d5db; /* Light gray border */
             font-weight: bold;
-            /* Using a generic sans-serif font. A specific Sloan font would need to be sourced. */
-            font-family: 'Arial Black', sans-serif;
-            /* Removed transition: transform 0.2s ease-in-out; for instant rotation */
-            display: inline-block; /* Allows transform to work correctly */
-            line-height: 1; /* Ensure line height doesn't add extra space */
-            color: black; /* Default color for the 'E' */
+            padding: 0.75rem 1rem; /* Tailwind py-3 px-4 */
+            border-radius: 0.25rem; /* Tailwind rounded */
+            outline: none;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Tailwind shadow */
+            display: flex; /* Use flex to center content */
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Style for crowding bars */
-        .crowding-bar {
-            position: absolute;
-            background-color: black; /* Color of the bars */
-            /* Size and position will be set by JS */
+        .direction-button:hover {
+            background-color: #f3f4f6; /* Lighter gray on hover */
+            border-color: #9ca3af; /* Darker gray border on hover */
         }
+
+        .direction-button:focus {
+             box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* Blue focus ring */
+        }
+
+         .direction-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+         }
+
 
     </style>
 </head>
@@ -61,7 +122,7 @@
 
         <div id="setup-section">
             <h1 class="text-2xl font-bold mb-4">Setup: Resize and Distance</h1>
-            <p class="text-gray-700 mb-6">Resize the blue rectangle below until it matches the size of a credit card in <b>portrait</b> orientation on your screen.</p> <div class="flex justify-center mb-6">
+            <p class="text-gray-700 mb-6">Resize the blue rectangle below until it matches the size of a credit card in **portrait** orientation on your screen.</p> <div class="flex justify-center mb-6">
                 <div id="resizable-rectangle" class="rounded-md">
                     <div id="resize-handle"></div>
                 </div>
@@ -104,32 +165,24 @@
             </div>
         </div>
 
-        <div id="e-section" class="hidden px-4 py-12"> <h2 class="text-xl font-bold mb-4">Indicate the direction of the 'E'</h2>
-             <p class="text-gray-700 mb-6">If you can't tell, just guess</p>
+        <div id="e-section" class="hidden px-4 py-12"> <h2 class="text-xl font-bold mb-4">Observe the 'E'</h2>
+             <p class="text-gray-700 mb-6">Indicate the direction the 'E' is facing.</p>
 
             <div class="flex justify-center mb-4">
                  <div id="e-container">
-                    <span id="e-display">E</span>
-                    <div id="crowding-left" class="crowding-bar vertical hidden"></div>
-                    <div id="crowding-right" class="crowding-bar vertical hidden"></div>
-                    <div id="crowding-top" class="crowding-bar horizontal hidden"></div>
-                    <div id="crowding-bottom" class="crowding-bar horizontal hidden"></div>
+                     <div id="e-grid-container"></div>
                  </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-6">
-                 <button data-direction="right" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Right
-                </button>
-                <button data-direction="down" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Down
-                </button>
-                <button data-direction="left" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Left
-                </button>
-                <button data-direction="up" class="direction-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Up
-                </button>
+                 <button data-direction="right" class="direction-button">
+                     <div class="button-e-container"></div> </button>
+                <button data-direction="down" class="direction-button">
+                     <div class="button-e-container"></div> </button>
+                <button data-direction="left" class="direction-button">
+                     <div class="button-e-container"></div> </button>
+                <button data-direction="up" class="direction-button">
+                     <div class="button-e-container"></div> </button>
             </div>
 
             <div class="mt-6 text-left text-gray-800">
@@ -147,6 +200,14 @@
     </div>
 
     <script>
+        // Map rotation degrees to direction strings
+        const rotationToDirection = {
+            0: 'right',
+            90: 'down',
+            180: 'left',
+            270: 'up'
+        };
+
         const rectangle = document.getElementById('resizable-rectangle');
         const handle = document.getElementById('resize-handle');
         const distanceSlider = document.getElementById('viewing-distance');
@@ -157,8 +218,8 @@
         const savedDistancePara = document.getElementById('saved-distance');
         const pixelsPerCmPara = document.getElementById('pixels-per-cm');
         const pixelsPerDegreePara = document.getElementById('pixels-per-degree');
-        const eDisplay = document.getElementById('e-display');
         const eContainer = document.getElementById('e-container'); // Get the E container
+        const eGridContainer = document.getElementById('e-grid-container'); // Get the E grid container
         const rotateButtons = document.querySelectorAll('.rotate-button'); // Keep these for potential future use
         const setupSection = document.getElementById('setup-section');
         const eSection = document.getElementById('e-section');
@@ -170,7 +231,6 @@
         const numReversalsInput = document.getElementById('num-reversals'); // Get the number of reversals input
         const reversalsValueSpan = document.getElementById('reversals-value'); // Get the span for reversals value
         const enableCrowdingCheckbox = document.getElementById('enable-crowding'); // Get the crowding checkbox
-        const crowdingBars = document.querySelectorAll('.crowding-bar'); // Get all crowding bars
 
 
         let isResizing = false;
@@ -195,7 +255,7 @@
         const PROPORTIONAL_STEP_DECREASE_FACTOR = 0.7; // Factor to decrease proportional step after reversal
         const MIN_PROPORTIONAL_STEP_FACTOR = 0.05; // Minimum proportional step factor
         const CORRECT_REVERSAL_STREAK = 3; // Number of correct answers for a reversal
-        const MIN_E_SIZE_DEGREES = 0.02; // Minimum 'E' size in degrees to prevent it from disappearing
+        const MIN_E_SIZE_DEGREES = 0.05; // Minimum 'E' size in degrees to prevent it from disappearing
         let proportionalStepFactor = INITIAL_PROPORTIONAL_STEP_FACTOR;
         let correctStreak = 0;
         let incorrectStreak = 0;
@@ -211,19 +271,101 @@
         // Initial target visual angle for the 'E' in degrees
         const INITIAL_VISUAL_ANGLE_DEG = 2;
 
-        // Crowding bar spacing and size relative to E size (adjust as needed)
-        const CROWDING_SPACING_FACTOR = 0.5; // Space between E and bar as a factor of E size
-        const CROWDING_BAR_LENGTH_FACTOR = 1.0; // Length of bars as a factor of E size
-        const CROWDING_BAR_THICKNESS_FACTOR = 0.15; // Thickness of bars as a factor of E size (approximating stroke width)
+        // Grid dimensions
+        const E_GRID_SIZE = 5; // The central E is 5x5 units
+        const EXTENDED_GRID_SIZE = 15; // The grid with crowding bars is 15x15 units
 
 
-        // Map rotation degrees to direction strings
-        const rotationToDirection = {
-            0: 'right',
-            90: 'down',
-            180: 'left',
-            270: 'up'
-        };
+        // Define the 'E' shape on a 5x5 grid (1 for black, 0 for white)
+        const E_SHAPE_GRID_5x5 = [
+            [1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1]
+        ];
+
+        // Define the extended grid (15x15) with E and crowding bars
+        // E is in the center 5x5 block (rows 5-9, cols 5-9)
+        // Crowding bars are 1 unit thick, 5 units long, 2 units away
+        // Left bar: Col 3, Rows 5-9
+        // Right bar: Col 11, Rows 5-9
+        // Top bar: Row 3, Cols 5-9
+        // Bottom bar: Row 11, Cols 5-9
+        const EXTENDED_E_GRID_15x15 = Array(EXTENDED_GRID_SIZE).fill(0).map(() => Array(EXTENDED_GRID_SIZE).fill(0));
+
+        // Populate the E shape
+        for (let r = 0; r < E_GRID_SIZE; r++) {
+            for (let c = 0; c < E_GRID_SIZE; c++) {
+                EXTENDED_E_GRID_15x15[r + 5][c + 5] = E_SHAPE_GRID_5x5[r][c];
+            }
+        }
+
+        // Populate the crowding bars
+        const BAR_THICKNESS = 1;
+        const BAR_LENGTH = 5; // Same length as E limbs
+        const BAR_SPACING = 2; // Distance from E
+
+        // Left bar
+        const leftBarCol = 5 - BAR_SPACING - BAR_THICKNESS;
+        for (let r = 0; r < BAR_LENGTH; r++) {
+            for (let c = 0; c < BAR_THICKNESS; c++) {
+                 if (leftBarCol + c >= 0) { // Ensure within grid bounds
+                     EXTENDED_E_GRID_15x15[r + 5][leftBarCol + c] = 1;
+                 }
+            }
+        }
+
+        // Right bar
+        const rightBarCol = 5 + E_GRID_SIZE + BAR_SPACING;
+         for (let r = 0; r < BAR_LENGTH; r++) {
+            for (let c = 0; c < BAR_THICKNESS; c++) {
+                 if (rightBarCol + c < EXTENDED_GRID_SIZE) { // Ensure within grid bounds
+                    EXTENDED_E_GRID_15x15[r + 5][rightBarCol + c] = 1;
+                 }
+            }
+        }
+
+        // Top bar
+        const topBarRow = 5 - BAR_SPACING - BAR_THICKNESS;
+         for (let c = 0; c < BAR_LENGTH; c++) {
+            for (let r = 0; r < BAR_THICKNESS; r++) {
+                 if (topBarRow + r >= 0) { // Ensure within grid bounds
+                     EXTENDED_E_GRID_15x15[topBarRow + r][c + 5] = 1;
+                 }
+            }
+        }
+
+        // Bottom bar
+        const bottomBarRow = 5 + E_GRID_SIZE + BAR_SPACING;
+         for (let c = 0; c < BAR_LENGTH; c++) {
+            for (let r = 0; r < BAR_THICKNESS; r++) {
+                 if (bottomBarRow + r < EXTENDED_GRID_SIZE) { // Ensure within grid bounds
+                     EXTENDED_E_GRID_15x15[bottomBarRow + r][c + 5] = 1;
+                 }
+            }
+        }
+
+
+        // Function to build a grid in a given container
+        function buildGrid(containerElement, gridData, gridSize) {
+            containerElement.innerHTML = ''; // Clear any existing grid
+            containerElement.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            containerElement.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const cell = document.createElement('div');
+                    // Use different class for button grid cells if needed for separate styling
+                    cell.classList.add(containerElement.id === 'e-grid-container' ? 'e-grid-cell' : 'button-e-grid-cell');
+                    if (gridData[row][col] === 1) {
+                        cell.classList.add('black');
+                    }
+                    containerElement.appendChild(cell);
+                }
+            }
+        }
+
 
         // Function to convert degrees to logMAR
         function degreesToLogMAR(degrees) {
@@ -311,65 +453,49 @@
             const rotations = [0, 90, 180, 270];
             const randomIndex = Math.floor(Math.random() * rotations.length);
             currentRotation = rotations[randomIndex];
-            eDisplay.style.transform = `rotate(${currentRotation}deg)`;
+            // Apply rotation to the E container (which now holds the grid)
+            eContainer.style.transform = `rotate(${currentRotation}deg)`;
         }
 
         // Function to update the 'E' size based on degrees and pixels per degree
         function updateESize() {
              if (calculatedPixelsPerDegree > 0) {
+                // The size in degrees refers to the height of the *central E* (5 units).
+                // So, 1 grid unit corresponds to currentESizeDegrees / 5 degrees.
+                // The total grid size (15x15 or 5x5) in degrees is (currentESizeDegrees / 5) * currentGridSize.
+
+                const currentGridSize = crowdingEnabled ? EXTENDED_GRID_SIZE : E_GRID_SIZE;
+                // Calculate the size of the central E in pixels
                 const eSizeInPixels = calculatedPixelsPerDegree * currentESizeDegrees;
-                const clampedESizeInPixels = Math.max(1, eSizeInPixels); // Ensure minimum size (1 pixel)
-                eDisplay.style.fontSize = clampedESizeInPixels + 'px';
+                // Calculate the size of one grid unit in pixels based on the E size
+                const gridUnitSizePixels = eSizeInPixels / E_GRID_SIZE;
+                 // Calculate the total grid size in pixels
+                const totalGridSizePixels = gridUnitSizePixels * currentGridSize;
+
+
+                // Ensure minimum pixel size for the entire grid (at least 1 pixel per grid cell)
+                const minGridPixels = currentGridSize;
+                const clampedTotalGridSizePixels = Math.max(minGridPixels, totalGridSizePixels);
+
+
+                // Set the size of the grid container and its parent container
+                eGridContainer.style.width = clampedTotalGridSizePixels + 'px';
+                eGridContainer.style.height = clampedTotalGridSizePixels + 'px';
+                eContainer.style.width = clampedTotalGridSizePixels + 'px';
+                eContainer.style.height = clampedTotalGridSizePixels + 'px';
+
+
                 currentESizeDegreesPara.textContent = `Current 'E' Size: ${currentESizeDegrees.toFixed(2)} degrees`;
-
-                // Update crowding bar size and position if enabled
-                if (crowdingEnabled) {
-                    const barLength = clampedESizeInPixels * CROWDING_BAR_LENGTH_FACTOR;
-                    const spacing = clampedESizeInPixels * CROWDING_SPACING_FACTOR;
-                    const barThickness = clampedESizeInPixels * CROWDING_BAR_THICKNESS_FACTOR; // Thickness scales with E size
-
-                    // Position and size the bars
-                    const leftBar = document.getElementById('crowding-left');
-                    const rightBar = document.getElementById('crowding-right');
-                    const topBar = document.getElementById('crowding-top');
-                    const bottomBar = document.getElementById('crowding-bottom');
-
-                    // Vertical bars
-                    leftBar.style.width = barThickness + 'px'; // Set width dynamically
-                    leftBar.style.height = barLength + 'px';
-                    leftBar.style.left = `calc(50% - ${clampedESizeInPixels / 2}px - ${spacing}px - ${barThickness}px)`;
-                    leftBar.style.top = `calc(50% - ${barLength / 2}px)`;
-
-                    rightBar.style.width = barThickness + 'px'; // Set width dynamically
-                    rightBar.style.height = barLength + 'px';
-                    rightBar.style.left = `calc(50% + ${clampedESizeInPixels / 2}px + ${spacing}px)`;
-                    rightBar.style.top = `calc(50% - ${barLength / 2}px)`;
-
-                    // Horizontal bars
-                    topBar.style.height = barThickness + 'px'; // Set height dynamically
-                    topBar.style.width = barLength + 'px';
-                    topBar.style.top = `calc(50% - ${clampedESizeInPixels / 2}px - ${spacing}px - ${barThickness}px)`;
-                    topBar.style.left = `calc(50% - ${barLength / 2}px)`;
-
-                    bottomBar.style.height = barThickness + 'px'; // Set height dynamically
-                    bottomBar.style.width = barLength + 'px';
-                    bottomBar.style.top = `calc(50% + ${clampedESizeInPixels / 2}px + ${spacing}px)`;
-                    bottomBar.style.left = `calc(50% - ${barLength / 2}px)`;
-
-                     // Ensure bars are visible
-                    crowdingBars.forEach(bar => bar.classList.remove('hidden'));
-
-                } else {
-                     // Hide bars if crowding is not enabled
-                     crowdingBars.forEach(bar => bar.classList.add('hidden'));
-                }
 
 
              } else {
-                 eDisplay.style.fontSize = '50px'; // Default size if calculation is not possible
+                 // Default size if calculation is not possible
+                 const defaultGridSize = 50; // Default size in pixels
+                 eGridContainer.style.width = defaultGridSize + 'px';
+                 eGridContainer.style.height = defaultGridSize + 'px';
+                 eContainer.style.width = defaultGridSize + 'px';
+                 eContainer.style.height = defaultGridSize + 'px';
                  currentESizeDegreesPara.textContent = `Current 'E' Size: N/A`;
-                  // Hide bars if calculation is not possible
-                 crowdingBars.forEach(bar => bar.classList.add('hidden'));
              }
         }
 
@@ -454,6 +580,30 @@
             setupSection.classList.add('hidden');
             eSection.classList.remove('hidden');
 
+            // Build the main 'E' grid based on crowding setting
+            buildGrid(eGridContainer, crowdingEnabled ? EXTENDED_E_GRID_15x15 : E_SHAPE_GRID_5x5, crowdingEnabled ? EXTENDED_GRID_SIZE : E_GRID_SIZE);
+
+            // Build and rotate the 'E' grids within the direction buttons
+            directionButtons.forEach(button => {
+                const buttonEContainer = button.querySelector('.button-e-container');
+                const buttonEGrid = document.createElement('div');
+                buttonEGrid.classList.add('button-e-grid');
+                buttonEContainer.appendChild(buttonEGrid);
+
+                buildGrid(buttonEGrid, E_SHAPE_GRID_5x5, E_GRID_SIZE); // Build the 5x5 E grid
+
+                const direction = button.getAttribute('data-direction');
+                let rotation = 0;
+                switch (direction) {
+                    case 'right': rotation = 0; break;
+                    case 'down': rotation = 90; break;
+                    case 'left': rotation = 180; break;
+                    case 'up': rotation = 270; break;
+                }
+                buttonEGrid.style.transform = `rotate(${rotation}deg)`;
+            });
+
+
             // Start the visual acuity test
             setRandomERotation(); // Set the first random rotation
             // Reset staircase variables for a new test
@@ -468,11 +618,16 @@
 
         // Add event listeners to the direction buttons
         directionButtons.forEach(button => {
+             // console.log("Direction button attached."); // Log when button listener is attached
             button.addEventListener('click', () => {
+                console.log("Direction button clicked!"); // Log when any direction button is clicked
                 // If enough reversals are reached, do nothing on button click
                 if (reversalsCount >= targetReversals) {
+                     console.log("Test complete. Ignoring button click.");
                      return;
                 }
+
+                // console.log("Accessing rotationToDirection:", rotationToDirection); // Log rotationToDirection before use
 
                 const selectedDirection = button.getAttribute('data-direction');
                 const correctDirection = rotationToDirection[currentRotation];
@@ -543,11 +698,10 @@
             setupSection.classList.remove('hidden');
 
              // Reset 'E' rotation and size
-            eDisplay.style.transform = 'rotate(0deg)';
-            eDisplay.style.fontSize = '10rem'; // Reset to a default large size
+            eContainer.style.transform = 'rotate(0deg)'; // Reset container rotation
 
-             // Hide crowding bars
-             crowdingBars.forEach(bar => bar.classList.add('hidden'));
+             // Hide crowding bars (implicitly handled by rebuilding grid)
+             // crowdingBars.forEach(bar => bar.classList.add('hidden')); // No longer needed
              enableCrowdingCheckbox.checked = false; // Reset checkbox
 
 
@@ -569,6 +723,17 @@
             numReversalsInput.value = 5; // Reset input value
             reversalsValueSpan.textContent = 5; // Reset display span value
             proportionalStepFactor = INITIAL_PROPORTIONAL_STEP_FACTOR; // Reset proportional step factor
+
+             // Clear the E grid
+             eGridContainer.innerHTML = '';
+
+             // Clear the E grids in the buttons
+             directionButtons.forEach(button => {
+                 const buttonEContainer = button.querySelector('.button-e-container');
+                 if (buttonEContainer) {
+                     buttonEContainer.innerHTML = '';
+                 }
+             });
 
 
              // Ensure direction buttons are enabled
